@@ -27,11 +27,12 @@ class SearchResult():
         return str
 
 
-class Offers():
+class Offer():
     def __init__(self):
         self.title = None
+        self.merchant_name = None
         self.price = 0.0
-        self.symbol = None
+        self.currency = None
         self.coupon = None
         self.price_without_coupon = 0.0
         self.edition = None
@@ -44,8 +45,13 @@ class Offers():
         str += f'Title : {self.title}'
         str += os.linesep
 
-        str += f'Price : {self.price} {self.symbol}'
-        str += f'Price without coupon : {self.price_without_coupon} {self.symbol}'
+        str += f'Merchant name : {self.merchant_name}'
+        str += os.linesep
+
+        str += f'Price : {self.price} {self.currency}'
+        str += os.linesep
+
+        str += f'Price without coupon : {self.price_without_coupon} {self.currency}'
         str += os.linesep
 
         str += f'Coupon : {self.coupon}'
@@ -62,22 +68,45 @@ class Offers():
 
         return str
 
+def currency_to_symbol(currency):
+    symbol = None
+
+    if currency == 'eur':
+        symbol = '€'
+
+    return symbol
 
 class GoclecdScraper():
     def __init__(self):
         pass
 
-    def get_offers(self, url):
+    def get_offers(self, url, currency='eur'):
         content = requests.get(url).content
 
         page = BeautifulSoup(content, 'lxml')
 
-        offer_tags = page.find_all('div', {'class': 'offers-table-row x-offer'})
+        offers_table = page.find('div', {'class': 'offers-table x-offers'})
+
+        product_id = page.find('a', {'class': 'aks-follow-btn aks-follow-btn-score aks-follow-btn-score-green game-aside-button jc-center col-4'})['data-product-id']
+
+        result = requests.get(f'https://www.goclecd.fr/wp-admin/admin-ajax.php?action=get_offers&product={product_id}&currency={currency}&region=&edition=&moreq=&use_beta_offers_display=1').json()
 
         offers = []
 
-        for offer_tag in offer_tags:
-            print(offer_tag)
+        #print(offers_json['merchants'])
+        for offer_json in result['offers']:
+            print(offer_json)
+
+            offer = Offer()
+
+            merchant_json = result['merchants'][offer_json['merchant']]
+            print(merchant_json)
+
+            offer.currency = currency_to_symbol(currency)
+            offer.price = float(offer_json['price'][currency]['price'])
+            offer.price_without_coupon = float(offer_json['price'][currency]['priceWithoutCoupon'])
+
+            offers.append(offer)
 
         return offers
 
@@ -120,4 +149,5 @@ if __name__ == '__main__':
     offers = scraper.get_offers('https://www.goclecd.fr/acheter-grounded-cle-cd-comparateur-prix')
 
     for offer in offers:
-        print(offer)
+        pass
+        #print(offer)
