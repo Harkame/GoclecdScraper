@@ -4,7 +4,8 @@ import os
 
 SEARCH_URL = 'https://www.goclecd.fr/catalogue/search-'
 
-class SearchResult():
+
+class SearchResult:
     def __init__(self):
 
         self.title = None
@@ -27,26 +28,18 @@ class SearchResult():
         return str
 
 
-class Offer():
+class Offer:
     def __init__(self):
-        self.title = None
-        self.merchant_name = None
         self.price = 0.0
         self.currency = None
         self.coupon = None
         self.price_without_coupon = 0.0
-        self.edition = None
-        self.review_count = 0
-        self.href = None
+
+        self.merchant = Merchant()
+        self.edition = Edition()
 
     def __str__(self):
         str = ''
-
-        str += f'Title : {self.title}'
-        str += os.linesep
-
-        str += f'Merchant name : {self.merchant_name}'
-        str += os.linesep
 
         str += f'Price : {self.price} {self.currency}'
         str += os.linesep
@@ -60,13 +53,29 @@ class Offer():
         str += f'Edition : {self.edition}'
         str += os.linesep
 
-        str += f'Review count : {self.review_count}'
-        str += os.linesep
-
-        str += f'href : {self.href}'
-        str += os.linesep
-
         return str
+
+
+class Merchant:
+    def __init__(self):
+        self.id = 0
+        self.name = None
+        self.types = None
+
+        self.aggregate_rating = AggregateRating()
+
+
+class AggregateRating:
+    def __init(self):
+        self.value = 0.0
+        self.count = 0
+
+
+class Edition:
+    def __init__(self):
+        self.id = 0
+        self.name = None
+
 
 def currency_to_symbol(currency):
     symbol = None
@@ -75,6 +84,7 @@ def currency_to_symbol(currency):
         symbol = '€'
 
     return symbol
+
 
 class GoclecdScraper():
     def __init__(self):
@@ -93,14 +103,24 @@ class GoclecdScraper():
 
         offers = []
 
-        #print(offers_json['merchants'])
         for offer_json in result['offers']:
             print(offer_json)
 
             offer = Offer()
 
             merchant_json = result['merchants'][offer_json['merchant']]
-            print(merchant_json)
+            edition_json = result['editions'][offer_json['edition']]
+
+            offer.merchant.id = merchant_json['id']
+            offer.merchant.name = merchant_json['name']
+
+            offer.merchant.aggregate_rating.value = merchant_json['aggregateRating']['value']
+            offer.merchant.aggregate_rating.count = merchant_json['aggregateRating']['count']
+
+            offer.merchant.aggregate_rating.types = merchant_json['types']
+
+            offer.edition.id = edition_json['id']
+            offer.edition.name = edition_json['name']
 
             offer.currency = currency_to_symbol(currency)
             offer.price = float(offer_json['price'][currency]['price'])
@@ -109,7 +129,6 @@ class GoclecdScraper():
             offers.append(offer)
 
         return offers
-
 
     def search(self, search):
         content = requests.get(SEARCH_URL + search.replace(' ', '+')).content
@@ -138,16 +157,7 @@ class GoclecdScraper():
 
 if __name__ == '__main__':
     scraper = GoclecdScraper()
+    search_results = scraper.search('mafia 3')
 
-    """
-    results = scraper.search('grounded')
-
-    for result in results:
-        print(result)
-    """
-
-    offers = scraper.get_offers('https://www.goclecd.fr/acheter-grounded-cle-cd-comparateur-prix')
-
-    for offer in offers:
-        pass
-        #print(offer)
+    for search_result in search_results:
+        print(search_result)
